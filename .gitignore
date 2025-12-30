@@ -1,0 +1,12 @@
+# Ignore the database (Keep your tasks private!)
+*.db
+
+# Ignore the virtual environment (Heavy & unnecessary)
+venv/
+
+# Ignore Python compiled files
+__pycache__/
+*.pyc
+
+# Ignore OS generated files
+.DS_Store
