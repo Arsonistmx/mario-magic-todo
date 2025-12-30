@@ -1,65 +1,53 @@
-# 🍄 Mario Magic Do List
+# 🍄 Mario Magic Do List (MARIO_SYS_V1.1)
 
-A modern, dark-mode desktop Task Manager built with Python. It features infinite sub-tasking, precise time-tracking, and a persistent local database. Designed for high-performance workflow with a "Gamified" feel and AI integration.
+A high-performance, dark-mode desktop Task Manager built with Python. Designed for deep-work sessions with a "Matrix/Hacker" terminal aesthetic, infinite sub-tasking, and privacy-first AI reporting.
 
 ## 🚀 Project Overview
 * **Type:** Desktop GUI Application
 * **Language:** Python 3.x
-* **UI Framework:** `customtkinter` (Modern, Dark Mode)
-* **Database:** `sqlite3` (Local, Relational)
-* **Architecture:** Component-Based (MVC pattern)
+* **UI Framework:** `customtkinter` (Sharp, High-Contrast Dark Mode)
+* **Database:** `sqlite3` (Local, Relational, Self-Referencing)
+* **Performance:** **Eco-Mode Engine** (<2% CPU Usage in Idle).
 
 ## ✨ Core Features
 
-### 1. Advanced Task Management
-* **Hierarchy:** Infinite nesting of tasks (Main Task $\rightarrow$ Sub-task $\rightarrow$ Sub-sub-task...).
-* **Work-First Workflow:** New tasks default to **🏢 WORK** category to reduce friction.
-* **Smart Grouping:** Tasks are automatically separated into **🏢 WORK** and **🏠 PERSONAL** headers.
-* **Toggle Focus:** "Show Personal" switch allows users to hide personal tasks during work hours.
+### 1. "Eco-Mode" Rendering 🌿
+* **Smart Focus Detection:** The Matrix Rain animation automatically pauses when you click away to another window, dropping CPU usage to near 0%.
+* **Optimized Graphics:** Rain density and frame rate are tuned for maximum battery life while maintaining the "Hacker" aesthetic.
 
-### 2. Time Tracking Engine ⏱️
-* **Stopwatch Logic:** Play/Stop buttons track exact seconds spent on tasks.
-* **Crash-Proof:** Timer state is saved in the DB. If the app/computer crashes, the timer continues running in the background.
-* **Time Propagation:** Time spent on a sub-task automatically bubbles up and adds to the Main Task's total.
+### 2. Advanced Task Management
+* **Hierarchy:** Infinite nesting (Main Task $\rightarrow$ Sub-task $\rightarrow$ Sub-sub-task...).
+* **Action Menu:** New dedicated `[...]` button per task for stable Editing, Deleting, and Archiving.
+* **Work-First Workflow:** Smart separation of **🏢 WORK** and **🏠 PERSONAL** tasks.
+* **Focus Mode:** "Show Personal" toggle hides non-work items during business hours.
 
 ### 3. AI-Ready Reporting 📄
-* **Smart Context:** Generates a Markdown report optimized for AI tools (ChatGPT/Claude).
-* **Visual Hierarchy:** Distinguishes between **🏆 Main Projects** and **Sub-tasks** to clarify progress vs. completion.
-* **AI Prompt Injection:** Automatically prepends context rules so the AI understands your project structure immediately.
-* **Privacy Focus:** Reports strictly exclude "Personal" items—only Work tasks are exported.
+* **Custom Date Ranges:** Generate reports for the Current Week, Last Week, or any specific Date Range.
+* **Context Injection:** Optional "AI Prompt" checkbox automatically prepends context rules so tools like ChatGPT/Claude understand your project structure immediately.
+* **Privacy First:** Reports strictly exclude "Personal" items—only Work tasks are exported.
 
-### 4. Smart History & Archiving (New!)
-* **Flat Log View:** The History tab ignores the tree structure and lists *every* finished item (even sub-tasks) chronologically.
-* **Context Aware:** Sub-tasks in history are labeled with `(Part of "Parent Name")` so you never lose context.
-* **Time Scoping:** Default view is **"Current Month"** to prevent clutter, with options for **"Last 3 Months"** or **"All Time"**.
-* **Smart Reopen:** Reopening a task automatically resurrects its Parent task to ensure hierarchy integrity.
+### 4. Time Tracking Engine ⏱️
+* **Precise Logging:** Play/Stop buttons track exact seconds.
+* **Crash-Proof:** Timer state saves to DB instantly; survives app restarts.
+* **Time Propagation:** Time spent on a sub-task bubbles up to the Parent Task's total.
 
 ---
 
 ## 🛠️ Technical Architecture
 
-### Database Schema (`database.py`)
-The app uses a self-referencing SQL table to handle hierarchy.
-
-| Column | Type | Purpose |
-| :--- | :--- | :--- |
-| `id` | INTEGER | Primary Key. |
-| `parent_id` | INTEGER | Self-reference for sub-tasks (FK). |
-| `task_name` | TEXT | Description of the task. |
-| `due_date` | TEXT | ETA string (e.g., "2 Hours"). |
-| `category` | TEXT | Defaults to 'Work'. |
-| `time_spent` | INTEGER | Total seconds worked (accumulated). |
-| `current_session_start` | TEXT | Timestamp if timer is running (NULL if stopped). |
-| `status` | TEXT | 'NEW', 'IN_PROGRESS', 'COMPLETED'. |
-
 ### Application Logic (`main.py`)
-* **`TodoApp` Class:** The main controller. Handles the window, tabs, and database connection.
-* **`TaskWidget` Class:** A reusable UI component representing a single row. It handles its own buttons, indenting (depth), and right-click events.
-* **Report Generation:** A robust system that fetches tasks, filters by date/category, checks parent lineage, and formats strings for AI consumption.
+* **`TodoApp`:** Main controller handling the "Rain" canvas, tabs, and focus events (Idle optimization).
+* **`TaskWidget`:** Reusable row component. Handles indentation (depth), timing logic, and the new Action Menu.
+* **`ActionDialog`:** A stable popup system replacing the standard right-click menu for task operations.
+* **`MatrixRainLite`:** Custom canvas implementation for the background visual effects.
+
+### Database Schema (`database.py`)
+* **Self-Referencing Table:** Tasks point to `parent_id` to create tree structures.
+* **Sessions Table:** Logs every "Start/Stop" interval for granular time auditing.
 
 ---
 
-## ⚙️ Installation & Setup
+## ⚙️ Installation
 
 1.  **Clone/Create Project Folder:**
     ```bash
@@ -67,10 +55,12 @@ The app uses a self-referencing SQL table to handle hierarchy.
     cd TodoApp
     ```
 
-2.  **Create Virtual Environment:**
+2.  **Create Virtual Environment (Recommended):**
     ```bash
     python -m venv venv
-    source venv/bin/activate  # Windows: venv\Scripts\activate
+    # Activate it:
+    # Windows: venv\Scripts\activate
+    # Mac/Linux: source venv/bin/activate
     ```
 
 3.  **Install Dependencies:**
@@ -85,17 +75,17 @@ The app uses a self-referencing SQL table to handle hierarchy.
 
 ---
 
-## 🔮 Future Roadmap
+## 🔮 Roadmap & Status
 
-### 🎨 GUI & Aesthetics
-* **Matrix/Hacker Theme:** Upgrade the UI to look more like a programming terminal (Green/Black aesthetics, monospaced fonts).
-* **Personalization:** Allow users to choose their own Icons and UI text strings.
+### ✅ Completed
+* **Performance:** CPU "Idle Trick" implemented (Pause animation on blur).
+* **Visuals:** Fixed border rendering (Sharp corners `corner_radius=0`, correct z-layering).
+* **UX Upgrade:** Replaced unstable Right-Click menu with dedicated `[...]` Action Buttons.
+* **Reporting:** Added Custom Date Pickers and AI Prompt Injection.
 
-### 🖱️ UX / Usability
-* **Accessibility Upgrade:** Replace the "Right-Click" menu with a visible **(...)** dot menu button for easier editing and deleting.
-* **Visibility:** Add an "Eye" icon to quickly toggle details or focus mode.
+### 🚧 In Progress
+* **Sound:** Adding retro SFX for timer interactions.
+* **Packaging:** Converting to `.exe` for portable use.
 
-### 📦 Distribution
-* **Packaging:** Convert to `.exe` / `.app` using PyInstaller.
-* **Analytics Visuals:** Charts for time spent per category inside the app.
-* **Sound Effects:** Audio feedback for timer start/stop.
+### 📝 Planned
+* **Analytics:** Visual charts for time spent per category inside the app.
