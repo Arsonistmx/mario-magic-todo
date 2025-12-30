@@ -43,7 +43,6 @@ class TodoDatabase:
         """)
         self.conn.commit()
 
-    # UPDATE 1: Default category changed to "Work"
     def add_task(self, task_name, due_date=None, category="Work", parent_id=None):
         created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.cursor.execute(
@@ -58,6 +57,28 @@ class TodoDatabase:
     def get_tasks(self, parent_id=None):
         query = "SELECT * FROM tasks WHERE parent_id IS ?"
         self.cursor.execute(query, (parent_id,))
+        return self.cursor.fetchall()
+
+    # --- UPDATED: History Filter ---
+    def get_all_archived_tasks(self, min_date=None):
+        """
+        Fetches archived tasks.
+        If min_date is provided, only shows items completed AFTER that date.
+        """
+        query = """
+            SELECT t.*, p.task_name as parent_name 
+            FROM tasks t
+            LEFT JOIN tasks p ON t.parent_id = p.id
+            WHERE t.status = 'ARCHIVED'
+        """
+        params = []
+        if min_date:
+            query += " AND t.completed_at >= ?"
+            params.append(min_date)
+
+        query += " ORDER BY t.completed_at DESC"
+
+        self.cursor.execute(query, tuple(params))
         return self.cursor.fetchall()
 
     def update_task_fields(self, task_id, new_name, new_eta):
@@ -161,13 +182,7 @@ class TodoDatabase:
         self._mark_children_status(task_id, 'NEW', None)
         self.conn.commit()
 
-    # --- REPORTING LOGIC ---
     def get_tasks_for_report(self, start_date_str, end_date_str):
-        """
-        UPDATED:
-        1. Filters out 'Personal' category.
-        2. Joins with tasks table again to fetch Parent Name.
-        """
         query = """
             SELECT DISTINCT 
                 t.*, 

@@ -22,16 +22,17 @@ A modern, dark-mode desktop Task Manager built with Python. It features infinite
 * **Crash-Proof:** Timer state is saved in the DB. If the app/computer crashes, the timer continues running in the background.
 * **Time Propagation:** Time spent on a sub-task automatically bubbles up and adds to the Main Task's total.
 
-### 3. AI-Ready Reporting 📄 (New!)
+### 3. AI-Ready Reporting 📄
 * **Smart Context:** Generates a Markdown report optimized for AI tools (ChatGPT/Claude).
 * **Visual Hierarchy:** Distinguishes between **🏆 Main Projects** and **Sub-tasks** to clarify progress vs. completion.
-* **Custom Ranges:** Select specific date ranges or quick filters (Current Week / Last Week).
 * **AI Prompt Injection:** Automatically prepends context rules so the AI understands your project structure immediately.
 * **Privacy Focus:** Reports strictly exclude "Personal" items—only Work tasks are exported.
 
-### 4. Data Persistence
-* **Active vs. History:** Tabbed interface separates active work from closed tasks.
-* **Smart Reopen:** Reopening a task from History automatically resurrects its Parent task to ensure hierarchy integrity.
+### 4. Smart History & Archiving (New!)
+* **Flat Log View:** The History tab ignores the tree structure and lists *every* finished item (even sub-tasks) chronologically.
+* **Context Aware:** Sub-tasks in history are labeled with `(Part of "Parent Name")` so you never lose context.
+* **Time Scoping:** Default view is **"Current Month"** to prevent clutter, with options for **"Last 3 Months"** or **"All Time"**.
+* **Smart Reopen:** Reopening a task automatically resurrects its Parent task to ensure hierarchy integrity.
 
 ---
 
@@ -85,6 +86,16 @@ The app uses a self-referencing SQL table to handle hierarchy.
 ---
 
 ## 🔮 Future Roadmap
+
+### 🎨 GUI & Aesthetics
+* **Matrix/Hacker Theme:** Upgrade the UI to look more like a programming terminal (Green/Black aesthetics, monospaced fonts).
+* **Personalization:** Allow users to choose their own Icons and UI text strings.
+
+### 🖱️ UX / Usability
+* **Accessibility Upgrade:** Replace the "Right-Click" menu with a visible **(...)** dot menu button for easier editing and deleting.
+* **Visibility:** Add an "Eye" icon to quickly toggle details or focus mode.
+
+### 📦 Distribution
 * **Packaging:** Convert to `.exe` / `.app` using PyInstaller.
 * **Analytics Visuals:** Charts for time spent per category inside the app.
 * **Sound Effects:** Audio feedback for timer start/stop.

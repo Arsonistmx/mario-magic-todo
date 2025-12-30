@@ -52,7 +52,7 @@ class TaskDialog(ctk.CTkToplevel):
             ctk.CTkLabel(self, text="Category:", anchor="w", text_color="#aaaaaa", font=("Arial", 12)).pack(
                 pady=(10, 5), padx=20, fill="x")
             self.cat_switch = ctk.CTkSegmentedButton(self, values=["Personal", "Work"])
-            self.cat_switch.set("Work")  # Default to Work
+            self.cat_switch.set("Work")
             self.cat_switch.pack(pady=5, padx=20)
 
         ctk.CTkButton(self, text="Save Changes", height=40, font=("Arial", 13, "bold"), command=self.save_task).pack(
@@ -242,7 +242,7 @@ class TodoApp(ctk.CTk):
         ctk.CTkButton(self.header, text="🏁 Finish Day", font=("Arial", 12, "bold"), fg_color="#27ae60", width=100,
                       command=self.finish_day).pack(side="left", padx=5)
 
-        # Report Button (New)
+        # Report Button
         ctk.CTkButton(self.header, text="📄 Report", font=("Arial", 12, "bold"), fg_color="#8e44ad", width=80,
                       command=self.show_report_dialog).pack(side="left", padx=5)
 
@@ -260,11 +260,30 @@ class TodoApp(ctk.CTk):
         self.active_frame = ctk.CTkScrollableFrame(self.tab_active, fg_color="transparent")
         self.active_frame.pack(fill="both", expand=True)
 
+        # UPDATED: History Tab UI with Filter
+        self.history_ctrl_frame = ctk.CTkFrame(self.tab_history, height=40, fg_color="transparent")
+        self.history_ctrl_frame.pack(fill="x", padx=10, pady=5)
+
+        ctk.CTkLabel(self.history_ctrl_frame, text="Filter History:", text_color="gray").pack(side="left", padx=5)
+
+        self.history_filter_var = ctk.StringVar(value="Current Month")
+        self.history_filter = ctk.CTkOptionMenu(
+            self.history_ctrl_frame,
+            values=["Current Month", "Last 3 Months", "All Time"],
+            variable=self.history_filter_var,
+            command=self.on_filter_change,
+            width=150
+        )
+        self.history_filter.pack(side="left", padx=5)
+
         self.history_frame = ctk.CTkScrollableFrame(self.tab_history, fg_color="transparent")
         self.history_frame.pack(fill="both", expand=True)
 
         self.refresh_tasks()
         self.update_timers()
+
+    def on_filter_change(self, choice):
+        self.refresh_tasks()
 
     def open_add_dialog(self):
         TaskDialog(self, self.add_task_to_db, include_category=True)
@@ -284,9 +303,8 @@ class TodoApp(ctk.CTk):
             self.folded_parents.add(task_id)
         self.refresh_tasks()
 
-    # --- REPORT GENERATION UPDATED ---
+    # --- REPORT GENERATION ---
     def show_report_dialog(self):
-        """Updated with Custom Range UI & AI Context Checkbox"""
         dialog = ctk.CTkToplevel(self)
         dialog.title("Generate AI Report")
         dialog.geometry("350x420")
@@ -295,11 +313,9 @@ class TodoApp(ctk.CTk):
 
         ctk.CTkLabel(dialog, text="Select Range (Work Only):", font=("Arial", 14, "bold")).pack(pady=(15, 10))
 
-        # NEW: Checkbox to include prompt text
         self.include_prompt_var = ctk.BooleanVar(value=True)
         ctk.CTkCheckBox(dialog, text="Include AI Context Prompt", variable=self.include_prompt_var).pack(pady=(0, 15))
 
-        # Quick Buttons
         ctk.CTkButton(dialog, text="Current Week", command=lambda: self.generate_report("current", dialog)).pack(pady=5,
                                                                                                                  padx=20,
                                                                                                                  fill="x")
@@ -307,7 +323,6 @@ class TodoApp(ctk.CTk):
                                                                                                            padx=20,
                                                                                                            fill="x")
 
-        # Custom Range Logic
         ctk.CTkLabel(dialog, text="--- OR Custom Range ---", text_color="gray").pack(pady=10)
 
         frame_custom = ctk.CTkFrame(dialog, fg_color="transparent")
@@ -324,10 +339,9 @@ class TodoApp(ctk.CTk):
 
     def generate_report(self, mode, dialog_window):
         today = datetime.now()
-        start_of_week = today - timedelta(days=today.weekday())  # Monday
+        start_of_week = today - timedelta(days=today.weekday())
         start_of_week = start_of_week.replace(hour=0, minute=0, second=0)
 
-        # Determine dates
         if mode == "current":
             start_date = start_of_week
             end_date = today
@@ -352,10 +366,8 @@ class TodoApp(ctk.CTk):
         s_str = start_date.strftime("%Y-%m-%d %H:%M:%S")
         e_str = end_date.strftime("%Y-%m-%d %H:%M:%S")
 
-        # DB now filters out Personal automatically
         tasks = self.db.get_tasks_for_report(s_str, e_str)
 
-        # Build Markdown
         report = [
             f"# Work Report: {title_str}\n"
             f"*Generated on {today.strftime('%Y-%m-%d')}*\n"
@@ -365,11 +377,8 @@ class TodoApp(ctk.CTk):
         pending = [t for t in tasks if t['status'] not in ['COMPLETED', 'ARCHIVED']]
 
         def format_task_line(t):
-            # VISUAL DISTINCTION:
-            # If no parent -> Main Task -> Big Header (🏆)
             if not t['parent_name']:
                 return f"\n### 🏆 {t['task_name']}"
-            # If parent -> Subtask -> Bullet with context
             else:
                 return f"* **{t['task_name']}** (Part of \"{t['parent_name']}\")"
 
@@ -389,7 +398,6 @@ class TodoApp(ctk.CTk):
 
         report_text = "\n".join(report)
 
-        # --- AUTO-INJECT AI PROMPT ---
         if self.include_prompt_var.get():
             ai_instructions = """I am pasting a weekly work report generated by my task manager. Please summarize my work based on the following rules:
 
@@ -401,7 +409,6 @@ class TodoApp(ctk.CTk):
 2. HOW TO INTERPRET PROGRESS:
    - If a "🏆 Main Project" appears in the "✅ Completed" section, announce that the ENTIRE project is finished.
    - If a "🏆 Main Project" appears in "🚧 Pending", but one of its subtasks appears in "✅ Completed", report this as "Progress made on [Project Name]".
-   - Do not list the same project twice; if a project is Pending but has completed subtasks, focus on the progress made.
 
 3. DESIRED OUTPUT:
    - Write a professional summary of what was achieved.
@@ -412,15 +419,12 @@ Here is the report data:
 -----------------------
 """
             report_text = ai_instructions + report_text
-        # -----------------------------
 
-        # Copy to Clipboard
         self.clipboard_clear()
         self.clipboard_append(report_text)
         self.update()
 
-        # Notify User
-        tk.messagebox.showinfo("Report Generated", "Work Report copied to clipboard!\n(Ready to paste into AI)")
+        tk.messagebox.showinfo("Report Generated", "Work Report copied to clipboard!")
 
     def refresh_tasks(self):
         for w in self.active_frame.winfo_children(): w.destroy()
@@ -428,7 +432,7 @@ Here is the report data:
 
         roots = self.db.get_tasks(parent_id=None)
 
-        # TAB 1: ACTIVE (Not Archived)
+        # TAB 1: ACTIVE (Tree)
         active_roots = [t for t in roots if t['status'] != 'ARCHIVED']
         work_active = [t for t in active_roots if t['category'] == 'Work']
         personal_active = [t for t in active_roots if t['category'] == 'Personal']
@@ -443,12 +447,32 @@ Here is the report data:
                          text_color="#aaa").pack(fill="x", padx=10, pady=(10, 5))
             for task in work_active: self.render_task_node(task, 0, self.active_frame, is_history=False)
 
-        # TAB 2: HISTORY (Archived Only)
-        archived_roots = [t for t in roots if t['status'] == 'ARCHIVED']
-        if archived_roots:
-            for task in archived_roots: self.render_task_node(task, 0, self.history_frame, is_history=True)
+        # TAB 2: HISTORY (Filtered)
+        mode = self.history_filter_var.get()
+        min_date_str = None
+
+        if mode == "Current Month":
+            today = datetime.now()
+            first_day = today.replace(day=1, hour=0, minute=0, second=0)
+            min_date_str = first_day.strftime("%Y-%m-%d %H:%M:%S")
+        elif mode == "Last 3 Months":
+            today = datetime.now()
+            start_date = today - timedelta(days=90)
+            min_date_str = start_date.strftime("%Y-%m-%d %H:%M:%S")
+
+        # "All Time" sends None, so no filter
+
+        archived_tasks = self.db.get_all_archived_tasks(min_date=min_date_str)
+        if archived_tasks:
+            for task in archived_tasks:
+                display_task = dict(task)
+                if task['parent_name']:
+                    display_task['task_name'] = f"{task['task_name']} (Part of \"{task['parent_name']}\")"
+
+                TaskWidget(self.history_frame, display_task, self.db, self.refresh_tasks, self.toggle_fold,
+                           is_folded=False, depth=0, is_history=True)
         else:
-            ctk.CTkLabel(self.history_frame, text="No archived tasks yet.", text_color="gray").pack(pady=20)
+            ctk.CTkLabel(self.history_frame, text=f"No archived tasks found ({mode}).", text_color="gray").pack(pady=20)
 
     def render_task_node(self, task, depth, parent_frame, is_history):
         is_folded = task['id'] in self.folded_parents
@@ -457,7 +481,7 @@ Here is the report data:
         children = self.db.get_tasks(parent_id=task['id'])
         for child in children:
             if is_history:
-                self.render_task_node(child, depth + 1, parent_frame, is_history)
+                pass
             else:
                 if child['status'] == 'ARCHIVED': continue
                 if is_folded and child['status'] == 'COMPLETED': continue
