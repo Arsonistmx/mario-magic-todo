@@ -24,7 +24,9 @@ THEME = {
     "BORDER": "#00FF41",
     "FONT_MAIN": ("Consolas", 14, "bold"),
     "FONT_MONO": ("Consolas", 12),
-    "FONT_HEADER": ("Courier New", 20, "bold")
+    "FONT_HEADER": ("Courier New", 20, "bold"),
+    "FONT_SECTION_ICON": ("Consolas", 32, "bold"),
+    "FONT_SECTION_TEXT": ("Consolas", 18, "bold")
 }
 
 # --- LAYOUT CONFIGURATION ---
@@ -41,7 +43,7 @@ class MatrixRainLite(ctk.CTkCanvas):
         self.pad_size = pad_size
         self.font_size = 14
         self.font_family = "Consolas"
-        self.col_spacing = int(self.font_size * 15)  # Sparse rain
+        self.col_spacing = int(self.font_size * 15)
         self.cols = int(self.width // self.col_spacing)
         self.drops = []
         self.chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ@#$%^&*"
@@ -102,7 +104,7 @@ class MatrixRainLite(ctk.CTkCanvas):
                 delta_y = reset_y - drop[2]
                 self.move(tag_id, 0, delta_y)
                 drop[2] = reset_y
-        self.after(200, self.animate)  # Eco mode
+        self.after(200, self.animate)
 
 
 # --- HELPER FUNCTIONS ---
@@ -120,7 +122,7 @@ def format_short_date(date_str):
 
 # --- DIALOGS ---
 class TaskDialog(ctk.CTkToplevel):
-    def __init__(self, parent, callback, title="EXECUTE_NEW_TASK", initial_name="", initial_eta="",
+    def __init__(self, parent, callback, title="NEW_TASK", initial_name="", initial_eta="",
                  include_category=True):
         super().__init__(parent)
         self.callback = callback
@@ -143,7 +145,8 @@ class TaskDialog(ctk.CTkToplevel):
         if self.include_category:
             ctk.CTkLabel(self.main, text="CLASS:", anchor="w", text_color=THEME["DIM"], font=THEME["FONT_MONO"]).pack(
                 pady=(10, 5), padx=20, fill="x")
-            self.cat_switch = ctk.CTkSegmentedButton(self.main, values=["Personal", "Work"], font=THEME["FONT_MONO"],
+            self.cat_switch = ctk.CTkSegmentedButton(self.main, values=["DANTE_QUARTERS", "Work"],
+                                                     font=THEME["FONT_MONO"],
                                                      fg_color="black", selected_color=THEME["DIM"],
                                                      selected_hover_color=THEME["FG"],
                                                      unselected_color="black", unselected_hover_color="#111",
@@ -166,17 +169,91 @@ class TaskDialog(ctk.CTkToplevel):
     def save_task(self):
         name = self.name_entry.get()
         eta = self.eta_entry.get()
-        cat = "Work" if not self.include_category else self.cat_switch.get()
+        if self.include_category:
+            raw_cat = self.cat_switch.get()
+            cat = "Personal" if raw_cat == "DANTE_QUARTERS" else "Work"
+        else:
+            cat = "Work"
+
         if name:
             self.callback(name, eta, cat)
             self.destroy()
 
 
+class NotesDialog(ctk.CTkToplevel):
+    def __init__(self, parent, task_name, initial_notes, on_save):
+        super().__init__(parent)
+        self.title("DATA_LOG")
+        self.geometry("500x400")
+        self.configure(fg_color="black")
+        self.transient(parent)
+        self.grab_set()
+        self.on_save = on_save
+
+        self.main = ctk.CTkFrame(self, fg_color="black", border_width=2, border_color=THEME["FG"], corner_radius=0)
+        self.main.pack(fill="both", expand=True, padx=2, pady=2)
+
+        ctk.CTkLabel(self.main, text=f"LOG: {task_name}", font=THEME["FONT_MAIN"], text_color=THEME["FG"],
+                     anchor="w").pack(
+            pady=(10, 5), padx=10, fill="x")
+
+        self.textbox = ctk.CTkTextbox(self.main, font=THEME["FONT_MONO"], fg_color="#111", text_color="white",
+                                      corner_radius=0)
+        self.textbox.pack(fill="both", expand=True, padx=10, pady=5)
+        self.textbox.insert("1.0", initial_notes)
+
+        ctk.CTkButton(self.main, text="[ SAVE_DATA ]", font=THEME["FONT_MAIN"],
+                      fg_color="transparent", border_color=THEME["FG"], border_width=1, text_color=THEME["FG"],
+                      hover_color="#222", corner_radius=0, command=self.save).pack(pady=10, padx=10, fill="x")
+
+    def save(self):
+        txt = self.textbox.get("1.0", "end-1c")
+        self.on_save(txt)
+        self.destroy()
+
+
+class DateFilterDialog(ctk.CTkToplevel):
+    def __init__(self, parent, callback):
+        super().__init__(parent)
+        self.title("FILTER_DATE")
+        self.geometry("300x180")
+        self.configure(fg_color="black")
+        self.transient(parent)
+        self.grab_set()
+        self.callback = callback
+
+        self.main = ctk.CTkFrame(self, fg_color="black", border_width=2, border_color=THEME["FG"], corner_radius=0)
+        self.main.pack(fill="both", expand=True, padx=2, pady=2)
+
+        ctk.CTkLabel(self.main, text="ENTER START DATE:", font=THEME["FONT_MONO"], text_color=THEME["DIM"]).pack(
+            pady=(20, 5))
+
+        self.entry = ctk.CTkEntry(self.main, placeholder_text="YYYY-MM-DD", font=THEME["FONT_MONO"],
+                                  fg_color="#111", border_color=THEME["DIM"], text_color=THEME["FG"])
+        self.entry.pack(pady=5, padx=20, fill="x")
+
+        ctk.CTkButton(self.main, text="[ APPLY FILTER ]", font=THEME["FONT_MAIN"],
+                      fg_color="transparent", border_color=THEME["FG"], border_width=1, text_color=THEME["FG"],
+                      hover_color="#222", corner_radius=0, command=self.apply).pack(pady=20, padx=20, fill="x")
+
+    def apply(self):
+        date_str = self.entry.get()
+        try:
+            # Validate format
+            datetime.strptime(date_str, "%Y-%m-%d")
+            # Append time to make it a full timestamp for comparison
+            full_date_str = f"{date_str} 00:00:00"
+            self.callback(full_date_str)
+            self.destroy()
+        except ValueError:
+            tk.messagebox.showerror("Error", "Invalid Format. Use YYYY-MM-DD")
+
+
 class ActionDialog(ctk.CTkToplevel):
-    def __init__(self, parent, task_name, on_edit, on_delete, on_archive):
+    def __init__(self, parent, task_name, on_edit, on_delete, on_archive, on_ai_report):
         super().__init__(parent)
         self.title("TASK_OPERATIONS")
-        self.geometry("300x250")
+        self.geometry("300x280")
         self.configure(fg_color="black")
         self.transient(parent)
         self.grab_set()
@@ -192,8 +269,9 @@ class ActionDialog(ctk.CTkToplevel):
                           text_color=color, hover_color="#222", corner_radius=0,
                           command=lambda: [cmd(), self.destroy()]).pack(pady=5, padx=20, fill="x")
 
+        action_btn("[ GENERATE AI REPORT ]", on_ai_report, color="#f1c40f")
         action_btn("[ EDIT PROPERTIES ]", on_edit)
-        if on_archive: action_btn("[ ARCHIVE ]", on_archive)
+        # Archive Button Removed
         action_btn("[ DELETE ]", on_delete, color="#ff4444")
         ctk.CTkButton(self.main, text="[ CANCEL ]", font=("Consolas", 10), text_color="#666",
                       fg_color="transparent", hover_color="#111", command=self.destroy).pack(pady=(10, 0))
@@ -201,8 +279,9 @@ class ActionDialog(ctk.CTkToplevel):
 
 # --- TASK WIDGET ---
 class TaskWidget(ctk.CTkFrame):
-    def __init__(self, parent, task_data, db, reload_callback, toggle_fold_callback, is_folded=False, depth=0,
-                 is_history=False):
+    def __init__(self, parent, task_data, db, reload_callback, toggle_fold_callback, app_reference, is_folded=False,
+                 depth=0,
+                 is_history=False, has_children=False):
         super().__init__(parent, fg_color="transparent", border_width=0, corner_radius=0)
         self.pack(fill="x", pady=2, padx=(depth * 25 + 5, 5))
         self.inner = ctk.CTkFrame(self, fg_color="transparent", border_color=THEME["DIM"], border_width=1,
@@ -213,14 +292,17 @@ class TaskWidget(ctk.CTkFrame):
         self.task_data = task_data
         self.reload_callback = reload_callback
         self.toggle_fold_callback = toggle_fold_callback
+        self.app_reference = app_reference
         self.task_id = task_data['id']
         self.is_history = is_history
         self.status = task_data['status']
 
+        # Indent Arrow
         if depth > 0:
             ctk.CTkLabel(self.inner, text="↳", text_color=THEME["DIM"], font=THEME["FONT_MONO"], width=20).pack(
                 side="left", padx=(5, 0))
 
+        # Status & Name
         if self.status == 'COMPLETED':
             text_color = THEME["DIM"]
             name_font = ctk.CTkFont(family="Consolas", size=13, overstrike=True)
@@ -234,44 +316,87 @@ class TaskWidget(ctk.CTkFrame):
         info_frame.pack(side="left", padx=5, expand=True, fill="x")
         ctk.CTkLabel(info_frame, text=display_name, font=name_font, text_color=text_color, anchor="w").pack(fill="x")
 
+        # Meta Data
         created_str = format_short_date(task_data['created_at'])
         date_text = f"ID:{self.task_id} | Init: {created_str}"
         if task_data['due_date']: date_text += f" | ETA: {task_data['due_date']}"
         ctk.CTkLabel(info_frame, text=date_text, font=("Consolas", 10), text_color=THEME["DIM"], anchor="w").pack(
             fill="x")
 
+        # --- RIGHT SIDE BUTTONS ---
+        # Order: [ + ] [ KILL ] [ i ] [ ≡ ] [ ▶ ] [ RUN ] 00:00:00
+
+        # 7. Timer Label (Rightmost)
         self.time_str = format_seconds(task_data['time_spent'])
         timer_color = "#3498db" if task_data['current_session_start'] else text_color
         self.timer_label = ctk.CTkLabel(self.inner, text=self.time_str, width=80, text_color=timer_color,
                                         font=("Consolas", 14, "bold"))
-        self.timer_label.pack(side="left", padx=10)
+        self.timer_label.pack(side="right", padx=10)
 
+        # Helper for Button Creation
         def btn(txt, cmd, color=THEME["FG"], width=30):
             return ctk.CTkButton(self.inner, text=txt, width=width, height=24, fg_color="transparent",
                                  border_width=1, border_color=color, text_color=color,
                                  hover_color="#222", corner_radius=0, font=("Consolas", 11, "bold"), command=cmd)
 
-        btn("[...]", self.open_action_menu, width=30).pack(side="right", padx=(2, 5))
-
         if not is_history and self.status != 'COMPLETED':
-            fold_char = "+" if is_folded else "-"
-            btn(fold_char, self.toggle_fold).pack(side="right", padx=2)
-
-        if is_history:
-            btn("[REOPEN]", self.reopen_task, width=60).pack(side="right", padx=5)
-        elif self.status == 'COMPLETED':
-            btn("[UNDO]", self.reopen_task, color="#666").pack(side="right", padx=5)
-        else:
-            btn("OK", self.mark_done).pack(side="right", padx=2)
-            if depth < 5: btn("+", self.add_subtask).pack(side="right", padx=2)
+            # 6. [ RUN ] / [ STOP ]
             if task_data['current_session_start']:
                 btn("STOP", self.stop_task, color="red").pack(side="right", padx=2)
             else:
                 btn("RUN", self.start_task).pack(side="right", padx=2)
 
+            # 5. [ ▶ ] / [ ▼ ] (Toggle Fold)
+            if has_children:
+                fold_symbol = "▶" if is_folded else "▼"
+                btn(fold_symbol, self.toggle_fold).pack(side="right", padx=2)
+            else:
+                pass  # Spacer
+
+            # 4. [ ≡ ] (Menu)
+            btn("≡", self.open_action_menu, width=30).pack(side="right", padx=(2, 5))
+
+            # 3. [ i ] (Notes)
+            has_notes = bool(task_data['notes'] and task_data['notes'].strip())
+            note_color = "#00FF41" if has_notes else "#444"
+            note_hover = "#111"
+            if has_notes: note_hover = "#222"
+
+            note_btn = ctk.CTkButton(self.inner, text="[ i ]", width=30, height=24, fg_color="transparent",
+                                     border_width=1, border_color=note_color, text_color=note_color,
+                                     hover_color=note_hover, corner_radius=0, font=("Consolas", 11, "bold"),
+                                     command=self.open_notes)
+            note_btn.pack(side="right", padx=2)
+
+            # 2. [ KILL ] (Mark Done)
+            btn("KILL", self.mark_done).pack(side="right", padx=2)
+
+            # 1. [ + ] (Add Subtask)
+            if depth < 5:
+                btn("+", self.add_subtask).pack(side="right", padx=2)
+
+        elif is_history:
+            btn("[REOPEN]", self.reopen_task, width=60).pack(side="right", padx=5)
+        elif self.status == 'COMPLETED':
+            btn("[UNDO]", self.reopen_task, color="#666").pack(side="right", padx=5)
+
+    def open_notes(self):
+        def save_callback(new_text):
+            self.db.update_task_notes(self.task_id, new_text)
+            self.reload_callback()
+
+        current_notes = self.task_data['notes'] if self.task_data['notes'] else ""
+        NotesDialog(self.winfo_toplevel(), self.task_data['task_name'], current_notes, save_callback)
+
     def open_action_menu(self):
-        ActionDialog(self.winfo_toplevel(), self.task_data['task_name'], on_edit=self.edit_task,
-                     on_delete=self.delete_task, on_archive=self.archive_task if not self.is_history else None)
+        ActionDialog(self.winfo_toplevel(), self.task_data['task_name'],
+                     on_edit=self.edit_task,
+                     on_delete=self.delete_task,
+                     on_archive=self.archive_task if not self.is_history else None,
+                     on_ai_report=self.generate_single_report)
+
+    def generate_single_report(self):
+        self.app_reference.generate_task_specific_report(self.task_id)
 
     def edit_task(self):
         def save(n, e, _):
@@ -320,7 +445,7 @@ class TaskWidget(ctk.CTkFrame):
 class TodoApp(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.title("MARIO_SYS_V1.1")
+        self.title("TEMagic_Console")
         self.geometry("1050x750")
         self.configure(fg_color="black")
         self.db = TodoDatabase()
@@ -330,6 +455,9 @@ class TodoApp(ctk.CTk):
         self.show_personal_var = ctk.BooleanVar(value=True)
         self.include_prompt_var = ctk.BooleanVar(value=True)
         self.history_filter_var = ctk.StringVar(value="Current Month")
+
+        # Archive Filter Default: 2 Weeks
+        self.history_min_date = (datetime.now() - timedelta(weeks=2)).strftime("%Y-%m-%d %H:%M:%S")
 
         # Layer 0: Matrix
         self.bg_matrix = MatrixRainLite(self, width=1050, height=750, pad_size=BORDER_PAD)
@@ -347,7 +475,7 @@ class TodoApp(ctk.CTk):
         # Header
         self.header = ctk.CTkFrame(self.fg_layer, height=50, corner_radius=0, fg_color="transparent")
         self.header.pack(fill="x", padx=10, pady=10)
-        ctk.CTkLabel(self.header, text="root@MARIO-SYS:~#", font=THEME["FONT_HEADER"], text_color=THEME["FG"]).pack(
+        ctk.CTkLabel(self.header, text="root@MACT_TEM:~#", font=THEME["FONT_HEADER"], text_color=THEME["FG"]).pack(
             side="left", padx=10)
 
         def head_btn(txt, cmd):
@@ -357,10 +485,11 @@ class TodoApp(ctk.CTk):
                                                                                                          padx=5)
 
         head_btn("[ + NEW TASK ]", self.open_add_dialog)
-        head_btn("[ END DAY ]", self.finish_day)
-        head_btn("[ REPORT ]", self.show_report_dialog)
+        head_btn("FLUSH_TASK", self.finish_day)
+        head_btn("REPORT_WEEK", self.show_report_dialog)
 
-        ctk.CTkSwitch(self.header, text="SHOW_PERSONAL", font=("Consolas", 11),
+        # UPDATED: Switch Name
+        ctk.CTkSwitch(self.header, text="SHOW_QUARTERS", font=("Consolas", 11),
                       progress_color=THEME["DIM"], button_color="white", button_hover_color="gray",
                       fg_color="#333", variable=self.show_personal_var, command=self.refresh_tasks).pack(side="right",
                                                                                                          padx=10)
@@ -373,9 +502,24 @@ class TodoApp(ctk.CTk):
                                    segmented_button_unselected_hover_color="#111", corner_radius=0)
         self.tabs.pack(fill="both", expand=True, padx=10, pady=(0, 20))
 
-        self.tab_active = self.tabs.add("ACTIVE_PROCESSES")
-        self.tab_history = self.tabs.add("LOGS_ARCHIVE")
+        # FIXED: Removed border_color/border_width to avoid crash
         self.tabs._segmented_button.configure(font=THEME["FONT_MONO"])
+
+        # UPDATED: Tab Names
+        self.tab_active = self.tabs.add("BRIDGE_COMMAND")
+        self.tab_history = self.tabs.add("BRIDGE_ARCHIVES")
+
+        # --- ARCHIVE FILTER BAR (NEW) ---
+        self.archive_filter_btn = ctk.CTkSegmentedButton(self.tab_history,
+                                                         values=["2 WEEKS", "1 MONTH", "CUSTOM"],
+                                                         command=self.on_archive_filter_change,
+                                                         font=THEME["FONT_MONO"],
+                                                         fg_color="black", selected_color=THEME["DIM"],
+                                                         selected_hover_color=THEME["FG"],
+                                                         unselected_color="black", unselected_hover_color="#111",
+                                                         corner_radius=0, border_width=1)
+        self.archive_filter_btn.set("2 WEEKS")
+        self.archive_filter_btn.pack(fill="x", padx=20, pady=(0, 10))
 
         self.active_frame = ctk.CTkScrollableFrame(self.tab_active, fg_color="transparent")
         self.active_frame.pack(fill="both", expand=True, pady=(0, 20))
@@ -385,6 +529,21 @@ class TodoApp(ctk.CTk):
 
         self.refresh_tasks()
         self.update_timers()
+
+    # --- ARCHIVE FILTER LOGIC ---
+    def on_archive_filter_change(self, value):
+        if value == "2 WEEKS":
+            self.history_min_date = (datetime.now() - timedelta(weeks=2)).strftime("%Y-%m-%d %H:%M:%S")
+            self.refresh_tasks()
+        elif value == "1 MONTH":
+            self.history_min_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d %H:%M:%S")
+            self.refresh_tasks()
+        elif value == "CUSTOM":
+            DateFilterDialog(self, self.set_custom_date)
+
+    def set_custom_date(self, date_str):
+        self.history_min_date = date_str
+        self.refresh_tasks()
 
     def open_add_dialog(self):
         TaskDialog(self, self.add_task_to_db, include_category=True)
@@ -404,7 +563,52 @@ class TodoApp(ctk.CTk):
             self.folded_parents.add(task_id)
         self.refresh_tasks()
 
-    # --- UPDATED REPORT DIALOG ---
+    # --- SINGLE TASK REPORT ---
+    def generate_task_specific_report(self, task_id):
+        hierarchy = self.db.get_task_hierarchy(task_id)
+        if not hierarchy: return
+
+        root_task = hierarchy[0]
+        report = [
+            f"# PROJECT STATUS REPORT: {root_task['task_name']}",
+            f"Generated: {datetime.now().strftime('%Y-%m-%d')}",
+            "--------------------------------------------"
+        ]
+
+        for t in hierarchy:
+            indent = ""
+            if t['id'] != root_task['id']:
+                indent = "  ↳ "
+
+            status_icon = "✅" if t['status'] == 'COMPLETED' else "🚧"
+            line = f"{indent}{status_icon} {t['task_name']} [{t['status']}]"
+            report.append(line)
+
+            if t['notes'] and t['notes'].strip():
+                note_lines = t['notes'].strip().split('\n')
+                for note in note_lines:
+                    report.append(f"{indent}    📝 NOTE: {note}")
+
+        report_text = "\n".join(report)
+
+        if self.include_prompt_var.get():
+            ai_context = """I am providing a status dump for a specific project hierarchy.
+Please summarize the status of this project.
+1. Identify the main goal (the root task).
+2. List what is Completed vs Pending.
+3. SUMMARIZE the "Notes" attached to tasks to explain technical details or blockers.
+
+Data:
+-----
+"""
+            report_text = ai_context + report_text
+
+        self.clipboard_clear()
+        self.clipboard_append(report_text)
+        self.update()
+        tk.messagebox.showinfo("Report Ready", "Project Report (with Notes) copied to clipboard!")
+
+    # --- REPORT DIALOG ---
     def show_report_dialog(self):
         dialog = ctk.CTkToplevel(self)
         dialog.title("GENERATE_REPORT")
@@ -441,7 +645,7 @@ class TodoApp(ctk.CTk):
 
         rpt_btn("[ GENERATE CUSTOM ]", "custom")
 
-    # --- UPDATED REPORT GENERATION LOGIC ---
+    # --- REPORT GENERATION LOGIC ---
     def generate_report(self, mode, dialog_window):
         today = datetime.now()
         start_of_week = today - timedelta(days=today.weekday())
@@ -528,7 +732,7 @@ Here is the report data:
         self.update()
         tk.messagebox.showinfo("Report Generated", "Work Report copied to clipboard!")
 
-    # --- UPDATED REFRESH LOGIC ---
+    # --- REFRESH LOGIC ---
     def refresh_tasks(self):
         for w in self.active_frame.winfo_children(): w.destroy()
         for w in self.history_frame.winfo_children(): w.destroy()
@@ -540,38 +744,55 @@ Here is the report data:
         work_active = [t for t in active_roots if t['category'] == 'Work']
         personal_active = [t for t in active_roots if t['category'] == 'Personal']
 
+        # Helper to draw Big Header
+        def draw_header(parent, icon, text):
+            # Create a frame to hold the two labels side by side
+            f = ctk.CTkFrame(parent, fg_color="transparent")
+            f.pack(fill="x", padx=10, pady=(15, 5))
+            # Huge Icon
+            ctk.CTkLabel(f, text=icon, font=THEME["FONT_SECTION_ICON"], text_color=THEME["DIM"]).pack(side="left")
+            # Medium-Large Text (Padding Left to separate)
+            ctk.CTkLabel(f, text=text, font=THEME["FONT_SECTION_TEXT"], text_color=THEME["DIM"]).pack(side="left",
+                                                                                                      padx=10)
+
         if self.show_personal_var.get() and personal_active:
-            ctk.CTkLabel(self.active_frame, text="🏠 PERSONAL", anchor="w", font=("Consolas", 12, "bold"),
-                         text_color=THEME["DIM"]).pack(fill="x", padx=10, pady=(10, 5))
+            # UPDATED: Personal Header using DANTE_QUARTERS with Paw Prints
+            draw_header(self.active_frame, "🐾", "DANTE_QUARTERS")
             for task in personal_active: self.render_task_node(task, 0, self.active_frame, is_history=False)
 
         if work_active:
-            ctk.CTkLabel(self.active_frame, text="🏢 WORK", anchor="w", font=("Consolas", 12, "bold"),
-                         text_color=THEME["DIM"]).pack(fill="x", padx=10, pady=(10, 5))
+            # UPDATED: Work Header
+            draw_header(self.active_frame, "⚗", "WORK")
             for task in work_active: self.render_task_node(task, 0, self.active_frame, is_history=False)
 
-        # TAB 2: HISTORY (Simple List)
-        # Note: Keeps simple list logic to ensure stability, but you can expand this later.
-        archived = self.db.get_all_archived_tasks(min_date=None)
-        for t in archived[:20]:
+        # TAB 2: HISTORY
+        # UPDATED: Uses self.history_min_date based on Segmented Button
+        archived = self.db.get_all_archived_tasks(min_date=self.history_min_date)
+        for t in archived:
             display_task = dict(t)
             if t['parent_name']:
                 display_task['task_name'] = f"{t['task_name']} (Part of \"{t['parent_name']}\")"
-            TaskWidget(self.history_frame, display_task, self.db, self.refresh_tasks, self.toggle_fold, is_history=True)
+            TaskWidget(self.history_frame, display_task, self.db, self.refresh_tasks, self.toggle_fold, self,
+                       is_history=True)
 
     def render_task_node(self, task, depth, parent_frame, is_history):
         is_folded = task['id'] in self.folded_parents
-        TaskWidget(parent_frame, task, self.db, self.refresh_tasks, self.toggle_fold, is_folded, depth, is_history)
 
         children = self.db.get_tasks(parent_id=task['id'])
-        for child in children:
-            if child['status'] == 'ARCHIVED': continue
-            if is_folded and child['status'] == 'COMPLETED': continue
+        active_children = [c for c in children if c['status'] != 'ARCHIVED']
+        has_children = len(active_children) > 0
+
+        TaskWidget(parent_frame, task, self.db, self.refresh_tasks, self.toggle_fold, self, is_folded, depth,
+                   is_history, has_children)
+
+        for child in active_children:
+            if is_folded: continue
             self.render_task_node(child, depth + 1, parent_frame, is_history)
 
     def update_timers(self):
         current_time = datetime.now()
         for widget in self.active_frame.winfo_children():
+            # Must check if it is a TaskWidget because we now have Header Frames in the list too
             if isinstance(widget, TaskWidget) and widget.task_data['current_session_start']:
                 start_dt = datetime.strptime(widget.task_data['current_session_start'], "%Y-%m-%d %H:%M:%S")
                 elapsed = int((current_time - start_dt).total_seconds())

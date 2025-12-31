@@ -8,11 +8,11 @@ class TodoDatabase:
         self.conn.row_factory = sqlite3.Row
         self.cursor = self.conn.cursor()
         self.create_table()
+        self._migrate_notes_column()
 
     def create_table(self):
         self.cursor.execute("PRAGMA foreign_keys = ON;")
 
-        # 1. Main Tasks Table
         self.cursor.execute("""
             CREATE TABLE IF NOT EXISTS tasks (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -26,11 +26,11 @@ class TodoDatabase:
                 current_session_start TEXT,
                 session_goal_seconds INTEGER,
                 status TEXT DEFAULT 'NEW',
+                notes TEXT DEFAULT '',
                 FOREIGN KEY(parent_id) REFERENCES tasks(id) ON DELETE CASCADE
             )
         """)
 
-        # 2. New Sessions Table
         self.cursor.execute("""
             CREATE TABLE IF NOT EXISTS sessions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -43,28 +43,50 @@ class TodoDatabase:
         """)
         self.conn.commit()
 
+    def _migrate_notes_column(self):
+        self.cursor.execute("PRAGMA table_info(tasks)")
+        columns = [info[1] for info in self.cursor.fetchall()]
+        if "notes" not in columns:
+            self.cursor.execute("ALTER TABLE tasks ADD COLUMN notes TEXT DEFAULT ''")
+            self.conn.commit()
+
     def add_task(self, task_name, due_date=None, category="Work", parent_id=None):
         created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.cursor.execute(
             """INSERT INTO tasks 
-               (parent_id, task_name, due_date, category, created_at, status, time_spent, session_goal_seconds) 
-               VALUES (?, ?, ?, ?, ?, 'NEW', 0, NULL)""",
+               (parent_id, task_name, due_date, category, created_at, status, time_spent, session_goal_seconds, notes) 
+               VALUES (?, ?, ?, ?, ?, 'NEW', 0, NULL, '')""",
             (parent_id, task_name, due_date, category, created_at)
         )
         self.conn.commit()
         return self.cursor.lastrowid
+
+    def update_task_notes(self, task_id, notes_text):
+        self.cursor.execute("UPDATE tasks SET notes = ? WHERE id = ?", (notes_text, task_id))
+        self.conn.commit()
 
     def get_tasks(self, parent_id=None):
         query = "SELECT * FROM tasks WHERE parent_id IS ?"
         self.cursor.execute(query, (parent_id,))
         return self.cursor.fetchall()
 
-    # --- UPDATED: History Filter ---
+    def get_task_by_id(self, task_id):
+        self.cursor.execute("SELECT * FROM tasks WHERE id = ?", (task_id,))
+        return self.cursor.fetchone()
+
+    # --- NEW: Recursive Fetch for Single Task Report ---
+    def get_task_hierarchy(self, task_id):
+        """Fetches a task and all its children recursively."""
+        parent = self.get_task_by_id(task_id)
+        if not parent: return []
+
+        results = [dict(parent)]
+        children = self.get_tasks(parent_id=task_id)
+        for child in children:
+            results.extend(self.get_task_hierarchy(child['id']))
+        return results
+
     def get_all_archived_tasks(self, min_date=None):
-        """
-        Fetches archived tasks.
-        If min_date is provided, only shows items completed AFTER that date.
-        """
         query = """
             SELECT t.*, p.task_name as parent_name 
             FROM tasks t
@@ -75,9 +97,7 @@ class TodoDatabase:
         if min_date:
             query += " AND t.completed_at >= ?"
             params.append(min_date)
-
         query += " ORDER BY t.completed_at DESC"
-
         self.cursor.execute(query, tuple(params))
         return self.cursor.fetchall()
 
@@ -92,7 +112,6 @@ class TodoDatabase:
         self.cursor.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
         self.conn.commit()
 
-    # --- STATUS & TIMER LOGIC ---
     def start_timer(self, task_id, goal_seconds=None):
         start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.cursor.execute(
@@ -110,7 +129,6 @@ class TodoDatabase:
             end_dt = datetime.now()
             end_str = end_dt.strftime("%Y-%m-%d %H:%M:%S")
             start_dt = datetime.strptime(start_str, "%Y-%m-%d %H:%M:%S")
-
             elapsed = int((end_dt - start_dt).total_seconds())
 
             self.cursor.execute(
@@ -200,10 +218,6 @@ class TodoDatabase:
         """
         params = (start_date_str, end_date_str, start_date_str, end_date_str, start_date_str, end_date_str)
         self.cursor.execute(query, params)
-        return self.cursor.fetchall()
-
-    def get_subtasks(self, parent_id):
-        self.cursor.execute("SELECT * FROM tasks WHERE parent_id = ?", (parent_id,))
         return self.cursor.fetchall()
 
     def close(self):

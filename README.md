@@ -1,49 +1,31 @@
-# 🍄 Mario Magic Do List (MARIO_SYS_V1.1)
+# 🚀 TEMagic_Console (v1.2)
 
-A high-performance, dark-mode desktop Task Manager built with Python. Designed for deep-work sessions with a "Matrix/Hacker" terminal aesthetic, infinite sub-tasking, and privacy-first AI reporting.
+**TEMagic_Console** is a high-performance, dark-mode terminal interface for task management. It combines a "Matrix/Sci-Fi" aesthetic with deep project tracking, recursive sub-tasking, and AI-powered status reporting.
 
-## 🚀 Project Overview
-* **Type:** Desktop GUI Application
-* **Language:** Python 3.x
-* **UI Framework:** `customtkinter` (Sharp, High-Contrast Dark Mode)
-* **Database:** `sqlite3` (Local, Relational, Self-Referencing)
-* **Performance:** **Eco-Mode Engine** (<2% CPU Usage in Idle).
-
-## ✨ Core Features
-
-### 1. "Eco-Mode" Rendering 🌿
-* **Smart Focus Detection:** The Matrix Rain animation automatically pauses when you click away to another window, dropping CPU usage to near 0%.
-* **Optimized Graphics:** Rain density and frame rate are tuned for maximum battery life while maintaining the "Hacker" aesthetic.
-
-### 2. Advanced Task Management
-* **Hierarchy:** Infinite nesting (Main Task $\rightarrow$ Sub-task $\rightarrow$ Sub-sub-task...).
-* **Action Menu:** New dedicated `[...]` button per task for stable Editing, Deleting, and Archiving.
-* **Work-First Workflow:** Smart separation of **🏢 WORK** and **🏠 PERSONAL** tasks.
-* **Focus Mode:** "Show Personal" toggle hides non-work items during business hours.
-
-### 3. AI-Ready Reporting 📄
-* **Custom Date Ranges:** Generate reports for the Current Week, Last Week, or any specific Date Range.
-* **Context Injection:** Optional "AI Prompt" checkbox automatically prepends context rules so tools like ChatGPT/Claude understand your project structure immediately.
-* **Privacy First:** Reports strictly exclude "Personal" items—only Work tasks are exported.
-
-### 4. Time Tracking Engine ⏱️
-* **Precise Logging:** Play/Stop buttons track exact seconds.
-* **Crash-Proof:** Timer state saves to DB instantly; survives app restarts.
-* **Time Propagation:** Time spent on a sub-task bubbles up to the Parent Task's total.
+Designed for the "Commander" who needs to manage **Work Operations** and **Personal Quarters** from a single command bridge.
 
 ---
 
-## 🛠️ Technical Architecture
+## 🕹️ Current Features
 
-### Application Logic (`main.py`)
-* **`TodoApp`:** Main controller handling the "Rain" canvas, tabs, and focus events (Idle optimization).
-* **`TaskWidget`:** Reusable row component. Handles indentation (depth), timing logic, and the new Action Menu.
-* **`ActionDialog`:** A stable popup system replacing the standard right-click menu for task operations.
-* **`MatrixRainLite`:** Custom canvas implementation for the background visual effects.
+### 1. The Command Bridge 🛸
+The interface is split into two primary consoles:
+* **BRIDGE_COMMAND (Active):** Your live workspace.
+    * **⚗ WORK:** Professional operations and alchemy.
+    * **🐾 DANTE_QUARTERS:** Personal tasks, guarded by your loyal Co-Pilot, Dante.
+* **BRIDGE_ARCHIVES (History):** A log of completed missions.
+    * **Time-Filtering:** Instantly filter archives by `[ 2 WEEKS ]`, `[ 1 MONTH ]`, or `[ CUSTOM ]` ranges to keep the view clean.
 
-### Database Schema (`database.py`)
-* **Self-Referencing Table:** Tasks point to `parent_id` to create tree structures.
-* **Sessions Table:** Logs every "Start/Stop" interval for granular time auditing.
+### 2. Task Operations
+* **Tree Structure:** Infinite nesting. (Main Task $\rightarrow$ Sub-task $\rightarrow$ Sub-sub-task).
+* **[ ▶ ] Toggle:** Expand or collapse complex project trees to reduce visual clutter.
+* **[ KILL ]:** Instantly mark a task as completed/neutralized.
+* **[ i ] Data Logs:** Attach detailed text notes to any task. The icon turns **Green** if intelligence is stored inside.
+* **Flush Protocol:** The `[ FLUSH TASK ]` button clears completed items from the Bridge and moves them to the Archives.
+
+### 3. AI Intelligence Reports 🧠
+* **Global Report:** Generate a summary of all Work/Personal progress for the week.
+* **Scoped Project Report:** Open the menu `≡` on any specific task and click `[ GENERATE AI REPORT ]`. This recursively fetches that task, all its children, and **all attached notes** to generate a specific status update prompt for ChatGPT/Claude.
 
 ---
 
@@ -51,14 +33,13 @@ A high-performance, dark-mode desktop Task Manager built with Python. Designed f
 
 1.  **Clone/Create Project Folder:**
     ```bash
-    mkdir TodoApp
-    cd TodoApp
+    mkdir TEMagic_Console
+    cd TEMagic_Console
     ```
 
-2.  **Create Virtual Environment (Recommended):**
+2.  **Create Virtual Environment:**
     ```bash
     python -m venv venv
-    # Activate it:
     # Windows: venv\Scripts\activate
     # Mac/Linux: source venv/bin/activate
     ```
@@ -68,24 +49,41 @@ A high-performance, dark-mode desktop Task Manager built with Python. Designed f
     pip install customtkinter
     ```
 
-4.  **Run the App:**
+4.  **Run the Console:**
     ```bash
     python main.py
     ```
 
 ---
 
-## 🔮 Roadmap & Status
+## 🔮 Roadmap: The "Log Machine" Expansion
 
-### ✅ Completed
-* **Performance:** CPU "Idle Trick" implemented (Pause animation on blur).
-* **Visuals:** Fixed border rendering (Sharp corners `corner_radius=0`, correct z-layering).
-* **UX Upgrade:** Replaced unstable Right-Click menu with dedicated `[...]` Action Buttons.
-* **Reporting:** Added Custom Date Pickers and AI Prompt Injection.
+The next major update will introduce **Gamification and Lore** to turn productivity into a cosmic journey.
 
-### 🚧 In Progress
-* **Sound:** Adding retro SFX for timer interactions.
-* **Packaging:** Converting to `.exe` for portable use.
+### 🚀 Upcoming Module: COSMIC_ODOMETRY
+We are turning the console into a spaceship navigation log.
 
-### 📝 Planned
-* **Analytics:** Visual charts for time spent per category inside the app.
+**1. The Mechanics (Time = Distance)**
+* The application will track total focus time across all tasks.
+* **Conversion Rate:** `1 Second of Focus = 100 KM traveled`.
+* **The Crew:**
+    * **Commander:** You (The User).
+    * **Navigator:** Dante (The Dog).
+
+**2. Milestones & Destinations**
+As we accrue "Distance" (Time Spent), the console will unlock arrival messages at celestial bodies:
+* *Leaving Earth Orbit*
+* *Arrival: The Moon*
+* *Mars Colony*
+* *Jupiter Station*
+* *The Edge of the Solar System*
+* *Deep Space / Alpha Centauri*
+
+**3. Console Atmosphere & "Navigator Dante" Interactions**
+* **Boot Sequence:** A randomized "Welcome Commander" message upon opening the app.
+* **Flavor Text:** Random status logs from Dante will appear in the header or as toast notifications:
+    * *"Navigator Dante reports: Sensors detect treat-shaped asteroids."*
+    * *"Engine efficiency at 98%. Tail wagging sensors active."*
+    * *"Alert: Walkies required in Sector 7."*
+
+> *"The journey is long, but the company is good."*
