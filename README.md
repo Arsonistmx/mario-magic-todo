@@ -1,23 +1,23 @@
-# 🚀 TEMagic_Console (v1.2)
+# 🚀 Mario Magic To-Do (v2.0)
 
-**TEMagic_Console** is a high-performance, dark-mode terminal interface for task management. It combines a "Matrix/Sci-Fi" aesthetic with deep project tracking, recursive sub-tasking, and AI-powered status reporting.
+**Mario Magic To-Do** is a high-performance, dark-mode terminal interface for task management. It combines a "Matrix/Sci-Fi" aesthetic with deep project tracking, recursive sub-tasking, and a fully gamified interstellar journey.
 
-Designed for the "Commander" who needs to manage **Work Operations** and **Personal Quarters** from a single command bridge.
+Designed for the "Commander" who needs to manage **Work Operations** and **Personal Quarters** from a single command bridge while traveling through the cosmos.
 
 ---
 
-## 🕹️ Current Features
+## 🕹️ Command Bridge Features
 
-### 1. The Command Bridge 🛸
+### 1. The Workspace 🛸
 The interface is split into two primary consoles:
 * **BRIDGE_COMMAND (Active):** Your live workspace.
     * **⚗ WORK:** Professional operations and alchemy.
     * **🐾 DANTE_QUARTERS:** Personal tasks, guarded by your loyal Co-Pilot, Dante.
 * **BRIDGE_ARCHIVES (History):** A log of completed missions.
-    * **Time-Filtering:** Instantly filter archives by `[ 2 WEEKS ]`, `[ 1 MONTH ]`, or `[ CUSTOM ]` ranges to keep the view clean.
+    * **Time-Filtering:** Instantly filter archives by `[ 2 WEEKS ]`, `[ 1 MONTH ]`, or `[ CUSTOM ]` ranges.
 
 ### 2. Task Operations
-* **Tree Structure:** Infinite nesting. (Main Task $\rightarrow$ Sub-task $\rightarrow$ Sub-sub-task).
+* **Tree Structure:** Infinite nesting (Main Task $\rightarrow$ Sub-task $\rightarrow$ Sub-sub-task).
 * **[ ▶ ] Toggle:** Expand or collapse complex project trees to reduce visual clutter.
 * **[ KILL ]:** Instantly mark a task as completed/neutralized.
 * **[ i ] Data Logs:** Attach detailed text notes to any task. The icon turns **Green** if intelligence is stored inside.
@@ -29,61 +29,36 @@ The interface is split into two primary consoles:
 
 ---
 
-## ⚙️ Installation
+## 🌌 Cosmic Odometry (Gamification)
 
-1.  **Clone/Create Project Folder:**
-    ```bash
-    mkdir TEMagic_Console
-    cd TEMagic_Console
-    ```
+The application now tracks your productivity as physical distance traveled through the universe.
 
-2.  **Create Virtual Environment:**
-    ```bash
-    python -m venv venv
-    # Windows: venv\Scripts\activate
-    # Mac/Linux: source venv/bin/activate
-    ```
-
-3.  **Install Dependencies:**
-    ```bash
-    pip install customtkinter
-    ```
-
-4.  **Run the Console:**
-    ```bash
-    python main.py
-    ```
-
----
-
-## 🔮 Roadmap: The "Log Machine" Expansion
-
-The next major update will introduce **Gamification and Lore** to turn productivity into a cosmic journey.
-
-### 🚀 Upcoming Module: COSMIC_ODOMETRY
-We are turning the console into a spaceship navigation log.
-
-**1. The Mechanics (Time = Distance)**
-* The application will track total focus time across all tasks.
-* **Conversion Rate:** `1 Second of Focus = 100 KM traveled`.
+### 1. The Mechanics
+* **Fuel Source:** Completed tasks and focus time drive the ship engines.
 * **The Crew:**
     * **Commander:** You (The User).
     * **Navigator:** Dante (The Dog).
 
-**2. Milestones & Destinations**
-As we accrue "Distance" (Time Spent), the console will unlock arrival messages at celestial bodies:
-* *Leaving Earth Orbit*
-* *Arrival: The Moon*
-* *Mars Colony*
-* *Jupiter Station*
-* *The Edge of the Solar System*
-* *Deep Space / Alpha Centauri*
+### 2. The Lore System (`lore_data.json`)
+The application loads a dynamic storyline from an external JSON file. As your distance increases, the system automatically detects your location:
+* **Milestones:** Passing real celestial markers triggers special logs (e.g., *Leaving Earth Orbit*, *The Moon*, *Mars Colony*, *Voyager 1*).
+* **Mission Logs:** Dynamic updates on the dashboard reflecting your current sector.
+* **Idle Chatter:** Random status logs from Dante (e.g., *"Sensors detect treat-shaped asteroids"*).
 
-**3. Console Atmosphere & "Navigator Dante" Interactions**
-* **Boot Sequence:** A randomized "Welcome Commander" message upon opening the app.
-* **Flavor Text:** Random status logs from Dante will appear in the header or as toast notifications:
-    * *"Navigator Dante reports: Sensors detect treat-shaped asteroids."*
-    * *"Engine efficiency at 98%. Tail wagging sensors active."*
-    * *"Alert: Walkies required in Sector 7."*
+---
 
-> *"The journey is long, but the company is good."*
+## 🛠️ Tech Stack & Structure
+
+* **Language:** Python 3.x
+* **GUI:** CustomTkinter
+* **Database:** SQLite (Auto-saves all tasks and history)
+* **Data Format:** JSON (Lore and configuration)
+
+**File Structure:**
+```text
+├── main.py             # Entry point
+├── db_manager.py       # SQLite handler
+├── lore_manager.py     # Cosmic distance & JSON logic
+├── lore_data.json      # The Story, Planets, and Dante's dialogue
+├── check_json.py       # Debugging tool for JSON
+└── requirements.txt    # Dependencies

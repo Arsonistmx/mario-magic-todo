@@ -2,6 +2,7 @@ import customtkinter as ctk
 import tkinter as tk
 from datetime import datetime, timedelta
 from database import TodoDatabase
+from gamification import FlightComputer
 from tkinter import messagebox
 import random
 import time
@@ -277,6 +278,196 @@ class ActionDialog(ctk.CTkToplevel):
                       fg_color="transparent", hover_color="#111", command=self.destroy).pack(pady=(10, 0))
 
 
+# --- NEW: MAP LOG WINDOW ---
+class MapLogWindow(ctk.CTkToplevel):
+    def __init__(self, parent, flight_computer):
+        super().__init__(parent)
+        self.title("NAV_CHART // MISSION_LOG")
+        self.geometry("600x700")
+        self.configure(fg_color="black")
+        self.fc = flight_computer
+        self.transient(parent)
+
+        # Header
+        ctk.CTkLabel(self, text="MISSION MANIFEST", font=THEME["FONT_HEADER"], text_color=THEME["FG"]).pack(pady=20)
+
+        # Scrollable Container
+        self.scroll = ctk.CTkScrollableFrame(self, fg_color="transparent")
+        self.scroll.pack(fill="both", expand=True, padx=20, pady=10)
+
+        self.render_map()
+
+    def render_map(self):
+        current_km = self.fc.db.get_total_distance()
+        milestones = self.fc.lore_data.get("milestones", [])
+
+        # Sort by distance just in case
+        milestones.sort(key=lambda x: x["distance"])
+
+        # Identify next target index
+        next_target_index = -1
+        for i, m in enumerate(milestones):
+            if m["distance"] > current_km:
+                next_target_index = i
+                break
+
+        for i, m in enumerate(milestones):
+            is_reached = m["distance"] <= current_km
+            is_active = (i == next_target_index)
+
+            self.create_mission_card(m, is_reached, is_active)
+
+    def create_mission_card(self, m, is_reached, is_active):
+        # Card Colors
+        if is_reached:
+            border_col = THEME["FG"]  # Green
+            title_col = THEME["FG"]
+            status_text = "[ MISSION ACCOMPLISHED ]"
+        elif is_active:
+            border_col = "#FF2222"  # Vivid Red
+            title_col = "#FF2222"
+            status_text = "[ >> CURRENT OBJECTIVE << ]"
+        else:
+            border_col = "#333"  # Dim Grey
+            title_col = "#555"
+            status_text = "[ LOCKED // FUTURE TARGET ]"
+
+        card = ctk.CTkFrame(self.scroll, fg_color="#050505", border_color=border_col, border_width=1, corner_radius=0)
+        card.pack(fill="x", pady=10)
+
+        # Header Row
+        head = ctk.CTkFrame(card, fg_color="transparent")
+        head.pack(fill="x", padx=10, pady=5)
+
+        name = m["name"].replace("_", " ")
+        dist_str = f"{m['distance']:,} KM"
+
+        ctk.CTkLabel(head, text=name, font=("Consolas", 14, "bold"), text_color=title_col).pack(side="left")
+        ctk.CTkLabel(head, text=dist_str, font=("Consolas", 12), text_color=border_col).pack(side="right")
+
+        # Status Bar
+        ctk.CTkLabel(card, text=status_text, font=("Consolas", 10, "bold"), text_color=border_col, anchor="w").pack(
+            fill="x", padx=10)
+
+        # Separator
+        ctk.CTkFrame(card, height=1, fg_color="#222").pack(fill="x", padx=10, pady=5)
+
+        # Body Content
+        body = ctk.CTkFrame(card, fg_color="transparent")
+        body.pack(fill="x", padx=10, pady=(0, 10))
+
+        # Fact (Intel)
+        ctk.CTkLabel(body, text="ASTRO_DATA:", font=("Consolas", 10, "bold"), text_color="#888", anchor="w").pack(
+            fill="x")
+        ctk.CTkLabel(body, text=m.get("intel", "No Data"), font=("Consolas", 11), text_color="#ccc", wraplength=500,
+                     justify="left", anchor="w").pack(fill="x", pady=(0, 5))
+
+        # Lore (Mission)
+        ctk.CTkLabel(body, text="MISSION_BRIEF:", font=("Consolas", 10, "bold"), text_color="#888", anchor="w").pack(
+            fill="x")
+        # Lore Text color depends on status
+        lore_col = THEME["FG"] if is_reached else ("#FF2222" if is_active else "#555")
+
+        ctk.CTkLabel(body, text=m.get("mission_log", "Classified"), font=("Consolas", 11, "italic"),
+                     text_color=lore_col, wraplength=500, justify="left", anchor="w").pack(fill="x")
+
+
+# --- NEW: TYPEWRITER LABEL ---
+class TypewriterLabel(ctk.CTkLabel):
+    def __init__(self, master, **kwargs):
+        super().__init__(master, text="", **kwargs)
+        self.full_text = ""
+        self.current_index = 0
+        self.typing_speed = 50  # ms
+
+    def type_message(self, message):
+        self.full_text = message
+        self.current_index = 0
+        self.configure(text="> ")
+        self._type_next_char()
+
+    def _type_next_char(self):
+        if self.current_index < len(self.full_text):
+            current_display = "> " + self.full_text[:self.current_index + 1] + "_"
+            self.configure(text=current_display)
+            self.current_index += 1
+            self.after(self.typing_speed, self._type_next_char)
+        else:
+            # Done typing, blink cursor
+            self.configure(text="> " + self.full_text + " ")
+            self._blink_cursor(True)
+
+    def _blink_cursor(self, visible):
+        if self.current_index < len(self.full_text): return  # Stop blink if new type started
+        txt = "> " + self.full_text + ("_" if visible else " ")
+        self.configure(text=txt)
+        self.after(800, lambda: self._blink_cursor(not visible))
+
+
+# --- NEW: FLIGHT DECK WIDGET (UPDATED) ---
+class FlightDeck(ctk.CTkFrame):
+    def __init__(self, parent, flight_computer):
+        super().__init__(parent, fg_color="transparent", border_width=0, corner_radius=0)
+        self.fc = flight_computer
+
+        # Row 1: Metrics
+        self.metrics_frame = ctk.CTkFrame(self, fg_color="#050505", border_color=THEME["DIM"], border_width=1,
+                                          corner_radius=0)
+        self.metrics_frame.pack(fill="x", pady=(0, 5))
+
+        # Clock (Left) - T-ACT: Time Actual (Real World Time)
+        self.clock_label = ctk.CTkLabel(self.metrics_frame, text="T-ACT: --:--:--", font=("Consolas", 12),
+                                        text_color=THEME["FG"])
+        self.clock_label.pack(side="left", padx=15, pady=5)
+
+        # Target (Center) - VIVID DARK RED
+        self.target_label = ctk.CTkLabel(self.metrics_frame, text="TARGET: ACQUIRING...",
+                                         font=("Consolas", 12, "bold"), text_color="#FF2222")
+        self.target_label.pack(side="left", expand=True, pady=5)
+
+        # Odometer (Right)
+        self.odo_label = ctk.CTkLabel(self.metrics_frame, text="ODOMETER: 0 KM", font=("Consolas", 12),
+                                      text_color=THEME["FG"])
+        self.odo_label.pack(side="right", padx=15, pady=5)
+
+        # Row 2: Comm Link
+        self.comm_frame = ctk.CTkFrame(self, fg_color="#000", border_color=THEME["DIM"], border_width=0,
+                                       corner_radius=0)
+        self.comm_frame.pack(fill="x")
+
+        # Comm Link Label - BIGGER (Size 12 Bold)
+        ctk.CTkLabel(self.comm_frame, text="[ COMM_LINK ]", font=("Consolas", 12, "bold"), text_color="#666").pack(
+            side="left", padx=(10, 5))
+
+        # Typing Text - YELLOW/GOLD
+        self.comm_label = TypewriterLabel(self.comm_frame, font=("Consolas", 12), text_color="#f1c40f", anchor="w")
+        self.comm_label.pack(side="left", fill="x", expand=True, padx=5, pady=2)
+
+        # Start Clock
+        self.update_clock()
+        self.update_nav_data()
+
+        # Boot Message
+        msg = self.fc.get_console_message("boot")
+        self.comm_label.type_message(msg)
+
+    def update_clock(self):
+        # Format: 14:32:05 31/12/2025
+        now_str = datetime.now().strftime("%H:%M:%S %d/%m/%Y")
+        self.clock_label.configure(text=f"T-ACT: {now_str}")
+        self.after(1000, self.update_clock)
+
+    def update_nav_data(self):
+        data = self.fc.calculate_progress()
+        self.target_label.configure(text=f"TARGET: {data['target_name']} (-{data['remaining']:,} KM)")
+        self.odo_label.configure(text=f"ODOMETER: {data['total']:,} KM")
+
+    def push_message(self, txt=None):
+        if not txt:
+            txt = self.fc.get_console_message("idle")
+        self.comm_label.type_message(txt)
+
+
 # --- TASK WIDGET ---
 class TaskWidget(ctk.CTkFrame):
     def __init__(self, parent, task_data, db, reload_callback, toggle_fold_callback, app_reference, is_folded=False,
@@ -419,7 +610,10 @@ class TaskWidget(ctk.CTkFrame):
         self.reload_callback()
 
     def stop_task(self):
-        self.db.stop_timer(self.task_id)
+        # UPDATED: Capture elapsed time and send to flight computer
+        elapsed_seconds = self.db.stop_timer(self.task_id)
+        if elapsed_seconds > 0:
+            self.app_reference.on_task_stopped(elapsed_seconds)
         self.reload_callback()
 
     def mark_done(self):
@@ -446,9 +640,10 @@ class TodoApp(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("TEMagic_Console")
-        self.geometry("1050x750")
+        self.geometry("1050x850")  # Increased height slightly for Flight Deck
         self.configure(fg_color="black")
         self.db = TodoDatabase()
+        self.fc = FlightComputer(self.db)  # GAMIFICATION
         self.folded_parents = set()
 
         # State variables
@@ -460,7 +655,7 @@ class TodoApp(ctk.CTk):
         self.history_min_date = (datetime.now() - timedelta(weeks=2)).strftime("%Y-%m-%d %H:%M:%S")
 
         # Layer 0: Matrix
-        self.bg_matrix = MatrixRainLite(self, width=1050, height=750, pad_size=BORDER_PAD)
+        self.bg_matrix = MatrixRainLite(self, width=1050, height=850, pad_size=BORDER_PAD)
         self.bg_matrix.place(x=0, y=0, relwidth=1, relheight=1)
         try:
             self.bg_matrix.tk.call('lower', self.bg_matrix._w)
@@ -474,7 +669,7 @@ class TodoApp(ctk.CTk):
 
         # Header
         self.header = ctk.CTkFrame(self.fg_layer, height=50, corner_radius=0, fg_color="transparent")
-        self.header.pack(fill="x", padx=10, pady=10)
+        self.header.pack(fill="x", padx=10, pady=(10, 0))
         ctk.CTkLabel(self.header, text="root@MACT_TEM:~#", font=THEME["FONT_HEADER"], text_color=THEME["FG"]).pack(
             side="left", padx=10)
 
@@ -487,12 +682,17 @@ class TodoApp(ctk.CTk):
         head_btn("[ + NEW TASK ]", self.open_add_dialog)
         head_btn("FLUSH_TASK", self.finish_day)
         head_btn("REPORT_WEEK", self.show_report_dialog)
+        head_btn("MAP_LOG", self.open_map_log)  # NEW MAP LOG BUTTON
 
         # UPDATED: Switch Name
         ctk.CTkSwitch(self.header, text="SHOW_QUARTERS", font=("Consolas", 11),
                       progress_color=THEME["DIM"], button_color="white", button_hover_color="gray",
                       fg_color="#333", variable=self.show_personal_var, command=self.refresh_tasks).pack(side="right",
                                                                                                          padx=10)
+
+        # --- NEW: FLIGHT DECK ---
+        self.flight_deck = FlightDeck(self.fg_layer, self.fc)
+        self.flight_deck.pack(fill="x", padx=10, pady=10)
 
         # Tabs
         self.tabs = ctk.CTkTabview(self.fg_layer, fg_color="transparent", text_color=THEME["FG"],
@@ -529,6 +729,21 @@ class TodoApp(ctk.CTk):
 
         self.refresh_tasks()
         self.update_timers()
+
+    # --- GAMIFICATION CALLBACKS ---
+    def on_task_stopped(self, elapsed_seconds):
+        # 1. Convert Time to Distance
+        km_added = self.fc.convert_seconds_to_km(elapsed_seconds)
+        # 2. Update HUD
+        self.flight_deck.update_nav_data()
+        # 3. Log a random message
+        self.flight_deck.push_message()
+        # 4. Optional debug print
+        print(f"DEBUG: Traveled {km_added} KM")
+
+    # --- MAP LOG ---
+    def open_map_log(self):
+        MapLogWindow(self, self.fc)
 
     # --- ARCHIVE FILTER LOGIC ---
     def on_archive_filter_change(self, value):

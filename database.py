@@ -1,5 +1,5 @@
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime
 
 
 class TodoDatabase:
@@ -9,10 +9,10 @@ class TodoDatabase:
         self.cursor = self.conn.cursor()
         self.create_table()
         self._migrate_notes_column()
+        self._init_stats_table()  # NEW
 
     def create_table(self):
         self.cursor.execute("PRAGMA foreign_keys = ON;")
-
         self.cursor.execute("""
             CREATE TABLE IF NOT EXISTS tasks (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -30,7 +30,6 @@ class TodoDatabase:
                 FOREIGN KEY(parent_id) REFERENCES tasks(id) ON DELETE CASCADE
             )
         """)
-
         self.cursor.execute("""
             CREATE TABLE IF NOT EXISTS sessions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -50,6 +49,28 @@ class TodoDatabase:
             self.cursor.execute("ALTER TABLE tasks ADD COLUMN notes TEXT DEFAULT ''")
             self.conn.commit()
 
+    # --- NEW: STATS TABLE ---
+    def _init_stats_table(self):
+        self.cursor.execute("""
+            CREATE TABLE IF NOT EXISTS user_stats (
+                key TEXT PRIMARY KEY,
+                value INTEGER
+            )
+        """)
+        # Initialize distance if not exists
+        self.cursor.execute("INSERT OR IGNORE INTO user_stats (key, value) VALUES ('total_distance', 0)")
+        self.conn.commit()
+
+    def get_total_distance(self):
+        self.cursor.execute("SELECT value FROM user_stats WHERE key = 'total_distance'")
+        row = self.cursor.fetchone()
+        return row['value'] if row else 0
+
+    def add_distance(self, km_to_add):
+        self.cursor.execute("UPDATE user_stats SET value = value + ? WHERE key = 'total_distance'", (km_to_add,))
+        self.conn.commit()
+
+    # --- EXISTING METHODS ---
     def add_task(self, task_name, due_date=None, category="Work", parent_id=None):
         created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.cursor.execute(
@@ -74,12 +95,9 @@ class TodoDatabase:
         self.cursor.execute("SELECT * FROM tasks WHERE id = ?", (task_id,))
         return self.cursor.fetchone()
 
-    # --- NEW: Recursive Fetch for Single Task Report ---
     def get_task_hierarchy(self, task_id):
-        """Fetches a task and all its children recursively."""
         parent = self.get_task_by_id(task_id)
         if not parent: return []
-
         results = [dict(parent)]
         children = self.get_tasks(parent_id=task_id)
         for child in children:
@@ -121,8 +139,10 @@ class TodoDatabase:
         self.conn.commit()
 
     def stop_timer(self, task_id):
+        # Returns elapsed seconds so Main App can calculate Distance
         self.cursor.execute("SELECT current_session_start, parent_id FROM tasks WHERE id = ?", (task_id,))
         row = self.cursor.fetchone()
+        elapsed = 0
 
         if row and row['current_session_start']:
             start_str = row['current_session_start']
@@ -149,6 +169,8 @@ class TodoDatabase:
                 self._propagate_time_upwards(row['parent_id'], elapsed)
 
             self.conn.commit()
+
+        return elapsed
 
     def _propagate_time_upwards(self, parent_id, seconds_to_add):
         curr_id = parent_id
