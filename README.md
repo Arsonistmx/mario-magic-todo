@@ -1,8 +1,18 @@
-# 🚀 Mario Magic To-Do (v2.0)
+# 🚀 Mario Magic To-Do (v2.1)
 
 **Mario Magic To-Do** is a high-performance, dark-mode terminal interface for task management. It combines a "Matrix/Sci-Fi" aesthetic with deep project tracking, recursive sub-tasking, and a fully gamified interstellar journey.
 
 Designed for the "Commander" who needs to manage **Work Operations** and **Personal Quarters** from a single command bridge while traveling through the cosmos.
+
+---
+
+## 🔒 Security & Stability (Verified)
+
+**Status:** ✅ **SECURE for Local Use**
+
+* **Offline / Air-Gapped:** The application contains **no** networking code. It does not connect to the internet, ensuring complete privacy of your tasks and data.
+* **Database Safety:** All database operations are protected with transaction rollbacks. If the app crashes or is force-closed, the database automatically unlocks and recovers, preventing data corruption.
+* **AI Reporting:** The "Generate AI Report" feature is a passive text generator. It copies a prompt to your clipboard for you to manually paste into an LLM (ChatGPT/Claude). No data is sent automatically.
 
 ---
 
@@ -57,8 +67,8 @@ The application loads a dynamic storyline from an external JSON file. As your di
 **File Structure:**
 ```text
 ├── main.py             # Entry point
-├── db_manager.py       # SQLite handler
-├── lore_manager.py     # Cosmic distance & JSON logic
+├── database.py         # SQLite handler (Robust Error Handling)
+├── gamification.py     # Cosmic distance & Dynamic Path Loading
 ├── lore_data.json      # The Story, Planets, and Dante's dialogue
 ├── check_json.py       # Debugging tool for JSON
 └── requirements.txt    # Dependencies

@@ -21,7 +21,13 @@ class FlightComputer:
 
     def _load_lore(self):
         try:
-            with open("lore_data.json", "r", encoding="utf-8") as f:
+            # SECURITY & STABILITY FIX:
+            # Use absolute path relative to this script's location
+            # This prevents "FileNotFoundError" if running the app from a different terminal directory.
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            file_path = os.path.join(base_dir, "lore_data.json")
+
+            with open(file_path, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
             print(f"Error loading lore: {e}")
